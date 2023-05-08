@@ -143,7 +143,8 @@ NOTES:
  *   Rating: 1
  */
 int bitXor(int x, int y) {
-  return 2;
+    //(X or Y) & (X and Y)
+    return (~(~x & ~y) & ~(x & y));
 }
 /* 
  * tmin - return minimum two's complement integer 
@@ -152,8 +153,9 @@ int bitXor(int x, int y) {
  *   Rating: 1
  */
 int tmin(void) {
-
-  return 2;
+    // move 1 for 31 digits to get 10000...0
+    int x = 0x01;
+    return x << 31;
 
 }
 //2
@@ -165,7 +167,16 @@ int tmin(void) {
  *   Rating: 1
  */
 int isTmax(int x) {
-  return 2;
+    // Check whether y is Tmax or -1, if True y3 = 0;
+    int y1 = x + 1;
+    int y2 = ~x;
+    int y3 = y1 ^ y2;
+
+    // Check whether x is -1, if x == -1, z2 = 1;
+    int z1 = ~x;
+    int z2 = !z1;
+    
+    return !(y3 | z2);
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -176,7 +187,12 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+    // y1 == 1010 1010;
+    int y1 = 0xAA;
+    // y2 == 1010 1010 1010 1010
+    int y2 = (y1 << 8) + y1;
+    int y3 = (y2 << 16) + y2;
+    return !((y3 & x) ^ y3);
 }
 /* 
  * negate - return -x 
@@ -186,7 +202,7 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+    return (~x + 1);
 }
 //3
 /* 
@@ -199,7 +215,13 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+    // 30 = 0011 0000
+    // 39 = 0011 1001
+    int y1 = !((x >> 4) ^ 3);
+    int y2 = (x & 8) >> 3;
+    int y3 = (x & 4) >> 2;
+    int y4 = (x & 2) >> 1;
+    return y1 & !(y2 & (y3 | y4));
 }
 /* 
  * conditional - same as x ? y : z 
@@ -209,7 +231,14 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+    int flag = !x;
+    int a;
+    int b;
+    flag = ~flag; //x != 0 => 1111 or x = 0 => 1110
+    flag = ~(flag + 1);
+    a = (flag & y);
+    b = (~flag & z);
+    return (a | b);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -219,7 +248,27 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+    // case 1: different sign and y >= x
+    int yh = y >> 31;
+    int xh = x >> 31;
+    int z1, z2, z3, sum;
+    yh = !yh; // if yh == 000...000(positive), !yh = 1
+    xh = !xh; // if xh == 111...111(negative), !xh = 0
+    z1 = yh & !xh ; //only consider y >= 0, x < 0 is true
+
+    // case 2: same sign for y and x
+    // x - y <= 0;
+    // x + (-y) <= 0;
+    // -x + y >= 0 ->1;
+    sum = (~x + 1) + y;
+    // if sum < 0; it become 111...111, not z = 0, otherwise it become 1;
+    sum = sum >> 31;
+    z2 = !sum & !(yh ^ xh); 
+    
+    // case 3: same sign and x == Tmin
+    z3 = !((~x + 1) ^ x) & !(yh ^ xh);
+
+    return (z1 | z2 | z3);
 }
 //4
 /* 
@@ -231,7 +280,14 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+    // want to made 0 become 000...000 then it will become 1 after plus 1
+    // 1 become 111...111 then it will become 0 after plus 1
+    // the first digit of -x | x will become 1 because it will change sign except for 0
+    // the first digit when x = Tmin will also become 1
+    // shift right for 31 digits then it will become the desired outcome
+    int x1 = (~x + 1) | x;
+    x1 = x1 >> 31;
+    return x1 + 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
@@ -246,7 +302,50 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  return 0;
+    // 0 and -1 are special case (will be all 0 and 1)
+    // if x < 0, change it to -x then count the left most 1 location
+    // location plus 1 will be the result?
+    //
+    // change x to positve first
+    int neg = x >> 31;
+    int cnt, mask, left0, plus, zero;
+    x = (~neg & x) | (neg & (~x + 1));
+
+    cnt = 0;
+    mask = (~0) << 16;
+    // if x first left 1 > 16, left 1 will be 1111...111
+    left0 = ~(!(x & mask)) + 1;
+
+    mask = (mask << 8) | (left0 & (mask >> 8));
+    cnt = (~left0 & (cnt + 16)) | cnt;
+
+    left0 = ~(!(x & mask)) + 1;
+    mask = (mask << 4) | (left0 & (mask >> 4));
+    cnt = (~left0 & (cnt + 8)) | cnt;
+    
+    left0 = ~(!(x & mask)) + 1;
+    mask = (mask << 2) | (left0 & (mask >> 2));
+    cnt = (~left0 & (cnt + 4)) | cnt;
+
+    left0 = ~(!(x & mask)) + 1;
+    mask = (mask << 1) | (left0 & (mask >> 1));
+    cnt = (~left0 & (cnt + 2)) | cnt;
+
+    left0 = ~(!(x & mask)) + 1;
+    mask = mask | (left0 & (mask >> 1));
+    cnt = (~left0 & (cnt + 1)) | cnt;
+    cnt = cnt + 1;
+
+    // see if there is 1 in the right part
+    mask = ~mask;
+    plus = ~(!(x & mask)) + 1;
+    plus = ~neg | (neg & ~plus);
+
+    zero = !x;
+    zero = ~zero + 1;
+    cnt = (~zero & ((plus & (cnt + 1)) | (~plus & cnt))) | (zero & cnt);
+
+    return cnt;
 }
 //float
 /* 
@@ -261,7 +360,33 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+    // three conditions
+    // 1. exp normalized
+    // 2. exp = 000...000 
+    // 3. exp = 111...111 return uf
+    // seperate the s, exp and frac part then compose them in the end
+    unsigned umax = 1 << 31;
+    unsigned exp = (uf << 1) >> 24; //push exp to right most 8 digits
+    unsigned sign = uf & umax; //get the first digit
+    unsigned fracmask = (0xff << 8) + 0xff; 
+    unsigned frac;
+    int nan, all_zero;
+    fracmask = (fracmask << 7) + 0x7f; //make right most 23 digits become 1
+
+    frac = uf & fracmask;
+    exp = exp & 0xff;
+    nan = !(exp ^ 0xff); //check if uf is Nan
+    if (nan) return uf; // if exp all 1 then Nan
+    
+    all_zero = !(exp ^ 0); //check all 0 case
+    if (all_zero) {
+        frac = frac << 1; // if exp = 000...000 then left shift frac to get scale2
+    }
+    else{
+        exp = exp + 1;
+        exp = exp << 23;    // if exp == others, exp + 1 to get scale2;
+    }
+    return sign + exp + frac;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -275,9 +400,65 @@ unsigned floatScale2(unsigned uf) {
  *   Max ops: 30
  *   Rating: 4
  */
+
 int floatFloat2Int(unsigned uf) {
-  return 2;
+    // Implement round to even
+    // Cant operate as floating point number, how to do that in unsigned/int ? 
+    // first find out the sign and exp part
+    int ans, positive, exp, frac, max;
+    
+    max = 0x80000000;
+    positive = !(uf & max);
+    exp = (uf >> 23) & 0xff;
+    exp = exp - 127;
+
+    if (exp  > 30) return max; //if uf == Nan or Inf
+    if (exp < 0) return 0;
+    // find out the frac part and find out its floating point part
+    frac = (uf & 0x7fffff) << 7;
+    frac = frac + 0x40000000;
+    // shift it find out the answer
+    frac = frac >> (30 - exp); 
+
+    ans = frac;
+
+    if (!positive) ans = -frac;
+
+    return ans;
 }
+/*
+int floatFloat2Int(unsigned uf) {
+    // Implement round to even
+    // Cant operate as floating point number, how to do that in unsigned/int ? 
+    // first find out the sign and exp part
+    int ans, positive, exp, roundup, half, even, frac, max, upper;
+    
+    roundup = 0;
+    half = 0;
+    max = 0x80000000;
+    upper = 0x20000000;
+    positive = !(uf & max);
+    exp = (uf >> 23) & 0xff;
+    exp = exp - 127;
+
+    if (exp  > 30) return max; //if uf == Nan or Inf
+    if (exp < -1) return 0;
+    // find out the frac part and find out its floating point part
+    frac = (uf & 0x7fffff) << 7;
+    if (frac > upper) roundup = 1;
+    if (frac == upper) half = 1;
+    frac = frac + 0x40000000;
+    // shift it find out the answer
+    frac = frac >> (30 - exp);
+    
+    even = !(frac & 0x1);
+    if (roundup || (!even && half)) frac ++;
+    if (!positive) ans = -frac;
+    else ans = frac;
+
+    return ans;
+}
+*/
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
  *   (2.0 raised to the power x) for any 32-bit integer x.
@@ -292,5 +473,10 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    int exp;
+    exp = x + 127;
+    if (exp < 0) return 0;
+    else if (exp > 255) return 0x7f800000;
+    exp = exp << 23;
+    return exp;
 }
